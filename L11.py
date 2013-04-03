@@ -1,10 +1,14 @@
 ##############################################################################
 #                                                                            #
-#   LX.py     Image Manipulation II: Gradients, Conditionals, XY Location    #
+#   L11.py    Text Games II: Object-oriented Programming                     #
 #                                                                            #
-#   Course:   CS1021C Computer Science I (Dr. Talaga)                        #
-#   Author:   Kevin Ernst                                                    #
-#   Date:     27 March 2013                                                  #
+#   Course:      CS1021C Computer Science I (Dr. Talaga)                     #
+#   Author(s):   Kevin Ernst                                                 #
+#                Nicholas Leigh                                              #
+#                Kyle Rone                                                   #
+#                ...                                                         #
+#                                                                            #
+#   Date:        03 April 2013                                               #
 #                                                                            #
 ##############################################################################
 
@@ -665,7 +669,7 @@ if __name__ == "__main__":
   # If we're running interactively:
   runGame()
 
-
+# End L11.py
 # vim:tw=78 sw=2 ts=2 expandtab
 
 
