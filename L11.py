@@ -772,7 +772,7 @@ def runGame():
     # TODO: fix this to be instanceof(HomePort) once the HomePort class is
     # fleshed out.
     if g.current_port.getName() == "Hong Kong":
-      if g.ship.cash > RICH_ENOUGH_TO_RETIRE:
+      if g.ship.getCash() > RICH_ENOUGH_TO_RETIRE:
         printNow("Taipan, you have had a successful career and amassed " +
                  "great wealth.\nI think it's high time you retired to a " +
                  "quiet home in the country!")
