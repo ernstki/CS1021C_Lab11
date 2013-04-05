@@ -289,18 +289,6 @@ class Ship:
   def setCash(self, amt):
     """Sets the amount of cash on the ship - NTL"""
     self.cash = amt
-  
-  def addCash(self, amount_to_add):
-    """Adds a specified amount of cash to what you already have (kme)"""
-    self.cash = self.cash + amount_to_add
-
-  def subtractCash(self, amount_to_subtract):
-    """Subtracts a specified amount of cach to what you already have and
-    raises and exception if that amount will put you in the hole. (kme)"""
-    if self.cash - amount_to_subtract < 0:
-      raise ThatWouldBankruptYou
-    else:
-      self.cash -= amount_to_subtract
 
   def setDebt(self, amt):
     """Sets the amount of debt you owe - NTL"""
