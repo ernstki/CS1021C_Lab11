@@ -531,6 +531,10 @@ class Game:
     # own __init__ methods.
     for p in port_names.keys():
       self.ports[p] = Port(p)
+      #if p != 0:  
+      # I've decided to keep track of visits to port 0 (the open ocean).
+      # Could work this into some kind of achievement system, or ranking
+      # upon retirement: "Master of the High Seas"
       self.visit_count[p] = 0  # initialize all visit counts to zero.
 
     # Now initialize each ports 'port_to_the' dictionary with references to
@@ -552,6 +556,32 @@ class Game:
   def getName(self):
     """Returns the name of the firm - NTL"""
     return self.firm_name
+
+  def incrementVisitsForPortNumber(self, portnum):
+    """Increment the number of visits for the given port number, 'portnum'"""
+    if portnum < 0:
+      raise ValueError
+    else:
+      self.visit_count[portnum] += 1
+
+  def getPortVisits(self):
+    """Get a list, in numerical order from 0 to (default) 7 of the visit
+    counts for all the ports."""
+    # NB: The sorting probably isn't necessary, since the main game loop is
+    # just going to do a min() on this list when deciding whether or not you
+    # can retire in Hong Kong.
+    visitlist = []
+    portnums = self.visit_count.keys()
+    portnums.sort() # just in case they're not already (not guaranteed with
+                    # the keys of a Python dictionary, I think)
+    for i in portnums:
+      visitlist.append(self.visit_count[i])
+    return visitlist
+
+  def timesAroundTheWorld(self):
+    """Return the number of times the player has "sailed around the world" by
+    looking a the minimum number of port visits from visit_count"""
+    return min(self.visit_count.values())
 
   def printPortMenu(self):
     """Print a menu of ports to which you can sail"""
@@ -764,6 +794,7 @@ def runGame():
 
   while not quit_game:
     g.current_port.arrivalMessage()
+    g.incrementVisitsForPortNumber(g.current_port.getPortNumber())
     g.ship.printStatus()
     g.printPortMenu()
     printNow('')
@@ -772,12 +803,19 @@ def runGame():
     # TODO: fix this to be instanceof(HomePort) once the HomePort class is
     # fleshed out.
     if g.current_port.getName() == "Hong Kong":
-      if g.ship.cash > RICH_ENOUGH_TO_RETIRE:
+      if g.ship.getCash() > RICH_ENOUGH_TO_RETIRE:
+        cls()
         printNow("Taipan, you have had a successful career and amassed " +
                  "great wealth.\nI think it's high time you retired to a " +
                  "quiet home in the country!")
         self.endGame()
-      if g.ship.getCondition() < 90:
+      elif g.timesAroundTheWorld() > RETIREMENT_AGE:
+        cls()
+        printNow("Taipan, you have had a successful career and bravely " +
+                 "sailed the high seas for many years now. I think it's " +
+                 "high time you retired to a quiet home in the country!")
+        self.endGame()
+      elif g.ship.getCondition() < 90:
         g.ship.doShipRepairs()
     printNow('')
 
@@ -808,7 +846,17 @@ def runGame():
         #portnum = g.current_port.getPortToThe('resp').getPortNumber()
         portnum = g.current_port.getPortNumberToThe('n')
         g.sailTo(portnum)
-      elif response.isdigit():
+      elif resp == 'r':
+        # Check retirement status:
+        cls()
+        printNow("Port visit count: %s" % str(g.getPortVisits()))
+        printNow("You have sailed around the world %i time(s)."
+                 % g.timesAroundTheWorld())
+        printNow("You may retire after %i time(s) around the world."
+            % RETIREMENT_AGE)
+        requestString("Press ENTER to continue.")
+        resp = True # ensure we re-print the port arrival message
+      elif resp.isdigit():
         #g.current_port = g.sailTo(resp)
         g.sailTo(resp)
       else: # invalid response
