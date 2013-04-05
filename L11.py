@@ -436,8 +436,14 @@ class Port:
     return port_descriptions[portnum]
 
   def getPortToThe(self, direction):
-    """Returns the port to the [direction] - NTL"""
+    """Returns the port (object) to the [direction] - NTL"""
+    # For some odd reason, getPortToThe('whatever').getPortNumber() doesn't
+    # work. So getPortNumberToThe('whatever') was created to work around this.
     return self.port_to_the[direction]
+
+  def getPortNumberToThe(self, direction):
+    """Returns the /number/ of the port in the requested direction (kme)"""
+    return self.port_to_the[direction].getPortNumber()
 
   def setPortToThe(self, direction, portref):
     """Set the value at 'direction' in the port_to_the dictionary to the Port
@@ -781,19 +787,33 @@ def runGame():
     while not resp:  # loop while the user keeps giving bad input
       resp = requestString("Where shall we sail to, Taipan?\n" +
                            "(or [H]elp or [Q]uit)")
+      # Have to check this first, otherwise string methods below will fail.
       if not resp: # empty or None
         continue
-      if resp[0].lower() == 'q':
+      # Now, remove leading and trailing spaces, take first letter of
+      # response, and make it lower case:
+      resp = resp.strip()[0].lower() 
+      if resp == 'q':
         quit_game = True
         continue
-      elif resp[0].lower() == 'h':
+      elif resp == 'h':
         printHelp()
         requestString("Press ENTER to continue.")
         resp = True  # just to make sure we break out of this while loop in
                      # case the user pressed "Cancel"
-      else:
+      elif resp in directions.keys():
+        # Go in that direction.
+        # This next line doesn't seem to work. Too many levels of
+        # indirection? Works in interactive mode.
+        #portnum = g.current_port.getPortToThe('resp').getPortNumber()
+        portnum = g.current_port.getPortNumberToThe('n')
+        g.sailTo(portnum)
+      elif response.isdigit():
         #g.current_port = g.sailTo(resp)
         g.sailTo(resp)
+      else: # invalid response
+        resp = None # clear the response, so the while loop won't stop
+        continue
 
 if __name__ == "__main__":
   # If we're running interactively:

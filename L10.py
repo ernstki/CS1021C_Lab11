@@ -40,7 +40,7 @@ RETIREMENT_AGE         = 10 - 9*EARLY_RETIREMENT
 # you're a millionaire. retire to a secluded tropical isle
 RICH_ENOUGH_TO_RETIRE  = 1e6 - int(DEFLATION*0.99*1e6)
 # how much cash you get for defeating a pirate fleet
-PIRATE_BOOTY           = 0
+PIRATE_BOOTY           = 500
 # Starting repair cost for 100% damage
 REPAIR_COST            = 1000
 SHIP_DAMAGE_SEA_VOYAGE = 3  + 5*RUTHLESS_ADVERSARIES
@@ -488,25 +488,9 @@ class Game:
       cls()
       #return self.putToSea(to_port)
       self.putToSea(to_port)
- 
-   def numberShips():
-    """Written by Kyle Rone 4/3/2012"""
-    if self.cash <= 500:
-      numberShips = randrange(1,5)
-    if (self.cash > 500) and (self.cash <= 5000): 
-      numberShips = randrange(5,10)
-    if (self.cash > 5000) and (self.cash <= 50000):
-      numberShips = randrange(10,20)
-    if (self.cash > 50000) and (self.cash <= 100000):
-      numberShips = randrange(20,35)
-    if (self.cash > 100000) and (self.cash <= 500000):
-      numberShips = randrange(35,50)
-    if (self.cash > 500000):
-      numberShips = randrange(50,100)        
-       
-  def seaBattle(self, numberShips):
-    """Edited by Kyle Rone 4/3/2013"""
-    printNow("Taipan, there are %i pirate ships on the horizon!\n" % numberShips)
+
+  def seaBattle(self, strength=5):
+    printNow("Taipan, there are %i pirate ships on the horizon!\n" % strength)
     sleep(PAUSE_MSG)
     # Run or fight?
     if self.ship.condition > 50:
@@ -533,7 +517,6 @@ class Game:
       printNow("\nWe can't hold 'em off, Tapian! We're being boarded!")
       raise
     else:
-      PIRATE_BOOTY = (numberShips * randrange(100,2500)) 
       printNow("\nWe've taken heavy damage, but the pirates are retreating!")
       printNow("Look at the buggers run, Taipan! Huzzah!\n")
       sleep(PAUSE_MSG)
