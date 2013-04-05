@@ -20,7 +20,7 @@
 #  2. http://www.taipangame.com/                                             #
 #                                                                            #
 #  3. 'commafy' function from Peterbe.com:                                   #
-#     http://www.peterbe.com/plog/thousands-commafy-large-numbers            #   
+#     http://www.peterbe.com/plog/thousands-commafy-large-numbers            #
 #                                                                            #
 ##############################################################################
 import sys #import (executable, version_info)
@@ -233,10 +233,6 @@ class Ship:
   def __init__(self, name=DEFAULT_SHIP_NAME, starting_choice=2,
                shanty=DEFAULT_SHANTY):
     """Initialization for the 'Ship' class"""
-    if name: # Not None or empty string
-      self.name     = name    # give this ship a name
-    else:
-      self.name     = DEFAULT_SHIP_NAME
     self.condition  = 100     # ship's condition (0-100%)
     self.sea_shanty = shanty  # the ship's official sea shanty
 
@@ -253,18 +249,61 @@ class Ship:
     # The ship starts with 60 holds. A gun takes 10 holds.
     self.holds = 60 - 10*self.guns
 
+  def getName(self):
+    """Returns the ships name - NTL"""
+    return self.name
+
+  def getCondition(self):
+    """Returns the ships condition - NTL"""
+    return self.condition
+
+  def getGuns(self):
+    """Returns the number of guns on the ship - NTL"""
+    return self.guns
+
+  def getCash(self):
+    """Returns the amount of cash on the ship - NTL"""
+    return self.cash
+
+  def getDebt(self):
+    """Returns the amount of debt you owe - NTL"""
+    return self.debt
+
+  def setName(self,name):
+    """Sets your ships name, uses a default name if none given - NTL"""
+    if name: # Not None or empty string
+      self.name     = name    # give this ship a name
+    else:
+      self.name     = DEFAULT_SHIP_NAME
+
+  def setGuns(self, amt):
+    """Sets the amount of guns on the ship - NTL"""
+    self.guns = amt
+
+  def setCash(self, amt):
+    """Sets the amount of cash on the ship - NTL"""
+    self.cash = amt
+
+  def setDebt(self, amt):
+    """Sets the amount of debt you owe - NTL"""
+    self.debt = amt
+
+  def setCondition(self, amt):
+    """Sets the ships condition - NTL"""
+    self.condition = amt
+
   def printStatus(self):
     """Print a summary of the ship's status: guns, cash, debt, and the
     condition of the ship."""
     pad = len(str(RICH_ENOUGH_TO_RETIRE))
     s = "The status of " + self.name + " is as follows:"
     printNow(s + '\n' + '-'*len(s))
-    printNow("CASH:   " + ljust(commafy(str(self.cash)), pad) +
-             "   DEBT:   -" + ljust(commafy(str(self.debt)), pad))
-    c = self.condition
+    printNow("CASH:   " + ljust(commafy(str(self.getCash())), pad) +
+             "   DEBT:   -" + ljust(commafy(str(self.getDebt())), pad))
+    c = self.getCondition()
     if c == 100:
       s = "   REPAIR:   Perfect! (%i%%)" % c
-    elif self.condition > 100:
+    elif c > 100:
       s = "   REPAIR:   Magically protected! (%i%%)" % c
     else:
       t = conditions[(c/25)%4]
@@ -276,8 +315,8 @@ class Ship:
     """Cause the ship to sustain battle damage, subtracting 'damage' from
     self.condition. Raise 'ShipSunk' if this causes condition to go less than
     zero."""
-    self.condition -= damage
-    if self.condition <=0:
+    self.setCondition(self.getCondition() - damage)
+    if self.getCondition() <=0:
       raise ShipSunk
 
   def doShipRepairs(self):
@@ -285,9 +324,9 @@ class Ship:
     allows you to pay McHenry from the Hong Kong shipyard"""
     # Should test for location here, but it's no longer local to this class.
     # :/
-    assert(self.condition < 100)  # it's a programming error if we get here
+    assert(self.getCondition() < 100)  # it's a programming error if we get here
                                    # otherwise
-    damage = 100 - self.condition
+    damage = 100 - self.getCondition()
     printNow("Taipan, Mc Henry from the Hong Kong Shipyards has arrived.")
     sleep(PAUSE_MSG_SHORT)
     printNow('')
@@ -299,11 +338,11 @@ class Ship:
       # richer, McHenry's going to charge you more. Like any good capitalist,
       # he's capturing consumer surplus.
       # ref: http://www.joelonsoftware.com/articles/CamelsandRubberDuckies.html
-      price = int((REPAIR_COST + 0.15*self.cash) * damage/100.0)
-      printNow("We can fix yer whole ship for " + str(price) + 
+      price = int((REPAIR_COST + 0.15*self.getCash()) * damage/100.0)
+      printNow("We can fix yer whole ship for " + str(price) +
                ", or make partial repairs if you wish.")
       printNow('')
-      
+
       good_response = False
       while not good_response:
         resp = requestInteger("How much will ye spend (0-%i)" % price)
@@ -313,18 +352,18 @@ class Ship:
         elif resp < 0:
           printNow("That isn't a figure I understand, sir.\n")
           continue
-        elif resp > self.cash:
+        elif resp > self.getCash():
           printNow("That'll bankrupt us, Taipan!\n")
           continue
         else:
           good_response = True
-          self.cash -= resp
+          self.setCash(self.getCash() - resp)
           # McHenry will gladly let you pay more than the agreed-upon price,
           # but won't fix your ship any more than all the way fixed.
           if resp > price:
-            self.condition = 100
+            self.setCondition(100)
           else:
-            self.condition += int((resp / float(price)) * damage)
+            self.setCondition(self.getCondition() + int((resp / float(price)) * damage))
     else:
       # Ye won't be wanting repairs, then.
       return
@@ -364,6 +403,24 @@ class Port:
   #   """Prints a list of neighboring port numbers (for use in the 'canSailTo'
   #   method"""
 
+  def getPortNumber(self):
+    """Returns the port number - NTL"""
+    return self.port_number
+
+  def getName(self):
+    """Returns the name of the port at [portnum] -NTL"""
+    portnum = self.getPortNumber()
+    return port_names[portnum]
+
+  def getPortDescription(self):
+    """Returns the description of the port at [portnum] - NTL"""
+    portnum = self.getPortNumber()
+    return port_descriptions[portnum]
+
+  def getPortToThe(self, direction):
+    """Returns the port to the [direction] - NTL"""
+    return self.port_to_the[direction]
+
   def setPortToThe(self, direction, portref):
     """Set the value at 'direction' in the port_to_the dictionary to the Port
     reference given as the second argument"""
@@ -378,9 +435,9 @@ class Port:
     """Prints the arrival message (and a brief ship's status report) for this
     port"""
     #self.__printDescription()
-    s = "Arriving in the port of " + self.name + "...."
+    s = "Arriving in the port of " + self.getName() + "...."
     printNow('='*len(s) + '\n' + s + '\n' + '='*len(s))
-    printNow(self.description + '\n')
+    printNow(self.getPortDescription() + '\n')
     self.printNeighboringPorts()
     printNow("")
 
@@ -396,18 +453,18 @@ class Port:
     else:
       #raise CantSailThere
       return False
-    
+
   def printDescription(self):
     """Prints a description of this port."""
-    printNow("You are in the port of " + self.name)
+    printNow("You are in the port of " + self.getName())
 
   def printNeighboringPorts(self):
     """Prints a list of all neighboring ports (to which you can sail directly
     without having to put to sea."""
-    printNow("To the North lies " + self.port_to_the['n'].name + ".")
-    printNow("To the South lies " + self.port_to_the['s'].name + ".")
-    printNow("To the East  lies " + self.port_to_the['e'].name + ".")
-    printNow("To the West  lies " + self.port_to_the['w'].name + ".")
+    printNow("To the North lies " + self.getPortToThe('n').name + ".")
+    printNow("To the South lies " + self.getPortToThe('s').name + ".")
+    printNow("To the East  lies " + self.getPortToThe('e').name + ".")
+    printNow("To the West  lies " + self.getPortToThe('w').name + ".")
 
 
 class HomePort(Port):
@@ -454,17 +511,21 @@ class Game:
           # if the key 'd' doesn't exist in the port_routes dictionary, then
           # set this direction's destination to 0 = open ocean
           self.ports[i].setPortToThe(d, self.ports[0])
-      
+
     # start in Hong Kong
-    self.current_port = self.ports[1] 
-  
+    self.current_port = self.ports[1]
+
+  def getName(self):
+    """Returns the name of the firm - NTL"""
+    return self.firm_name
+
   def printPortMenu(self):
     """Print a menu of ports to which you can sail"""
     s = ''
     for i in range(1, len(self.ports)):  # skips '0'!
       s = s + "[%i] %s    " %(i, self.ports[i].name)
       if i%4 == 0: s = s + '\n'
-    printNow(s) 
+    printNow(s)
 
   def sailTo(self, to_port):
     """Set sail from the current port to the given destination port 'to_port'.
@@ -473,7 +534,7 @@ class Game:
     to_port = int(to_port) # for my sanity
 
     # Validate the input first:
-    portname = self.ports[to_port].name
+    portname = self.ports[to_port].getName()
     if self.current_port.canSailTo(to_port):
       # We can sail to the destination port along the coast without crossing
       # the open ocean.
@@ -485,7 +546,7 @@ class Game:
     else:
       # Not a neighboring port. Must deploy to open ocean.
       # TODO: Require purchasing supplies first.
-      printNow("The journey to " + portname + 
+      printNow("The journey to " + portname +
                " will require crossing the open ocean, Taipan.")
       printNow("May the sea goddess look favorably on our journey!")
       sleep(PAUSE_EVENT)
@@ -546,7 +607,7 @@ class Game:
       sleep(PAUSE_EVENT)
       cls()
       raise BattleVictory
-  
+
   def putToSea(self, destination):
     """Puts the ship to sea, with the final destionation of 'destination'.
     As opposed to 'sailTo', which is a short sail to a neighboring port close
@@ -568,7 +629,7 @@ class Game:
         pass
     # attacked by a giant squid (between 10 and 30%, depending on whether it's
     # SQUID_SEASON):
-    elif 50 <= chance < 60 + SQUID_SEASON*30: 
+    elif 50 <= chance < 60 + SQUID_SEASON*30:
       printNow("Taipan, the seas are rough. We're likely to be attacked " +
                "by squid.")
       sleep(PAUSE_EVENT)
@@ -615,8 +676,8 @@ class Game:
 
   # def goHome(self, ship):
   #   """Immediately sail home (e.g., in case of severe battle damage)"""
-    
-    
+
+
 ##############################################################################
 #                      I N I T I A L I Z A T I O N                           #
 ##############################################################################
@@ -633,15 +694,11 @@ def runGame():
   printNow('~'*70)
   resp = requestString("Let's begin, Taipan. What will you name your firm?")
   g = Game(firm_name=resp)
-  printNow("Very well, sir. " + g.firm_name + " will need a ship.\n")
+  printNow("Very well, sir. " + g.getName() + " will need a ship.\n")
   resp = requestString("What will you name your ship?")
-  if resp: # not None or empty string
-    g.ship.name = resp
-  else:
-    g.ship.name = DEFAULT_SHIP_NAME
-  cls()
-
+  g.ship.setName(resp)
   quit_game = False
+
   while not quit_game:
     g.current_port.arrivalMessage()
     g.ship.printStatus()
@@ -651,13 +708,13 @@ def runGame():
     # Allow ship repairs if ship status is <90% and you're in Hong Kong
     # TODO: fix this to be instanceof(HomePort) once the HomePort class is
     # fleshed out.
-    if g.current_port.name == "Hong Kong":
+    if g.current_port.getName() == "Hong Kong":
       if g.ship.cash > RICH_ENOUGH_TO_RETIRE:
         printNow("Taipan, you have had a successful career and amassed " +
                  "great wealth.\nI think it's high time you retired to a " +
                  "quiet home in the country!")
         self.endGame()
-      if g.ship.condition < 90:
+      if g.ship.getCondition() < 90:
         g.ship.doShipRepairs()
     printNow('')
 
