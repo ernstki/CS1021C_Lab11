@@ -31,7 +31,7 @@ from time import sleep
 DEBUGGING = True
 if DEBUGGING:
   RUTHLESS_ADVERSARIES, DEFLATION, EARLY_RETIREMENT = 1,1,1
-  SQUID_SEASON, IMPATIENT = 0,1
+  SQUID_SEASON, IMPATIENT = 1,1
 else:
   RUTHLESS_ADVERSARIES, DEFLATION, EARLY_RETIREMENT = 0,0,0
   SQUID_SEASON, IMPATIENT = 0,0
@@ -47,6 +47,7 @@ RICH_ENOUGH_TO_RETIRE  = 1e6 - int(DEFLATION*0.99*1e6)
 PIRATE_BOOTY           = 200
 # Starting repair cost for 100% damage
 REPAIR_COST            = 1000
+STARTING_GUNS          = 5
 SHIP_DAMAGE_SEA_VOYAGE = 3  + 5*RUTHLESS_ADVERSARIES
 SHIP_DAMAGE_PIRATES    = 10 + 20*RUTHLESS_ADVERSARIES
 SHIP_DAMAGE_SQUID      = 25 + 25*RUTHLESS_ADVERSARIES
@@ -132,16 +133,21 @@ Traveling close to the mainland or to nearby ports incurs less risk
 (of pirate or giant squid attacks) than traveling across open ocean.
 Upon arriving at a port, you are presented with a list of neighboring
 ports, which you can safely travel to under the protection of
-maritime law enforcement.
+maritime law enforcement. You can travel to these nearby ports by
+pressing the letter corresponding to the one of the cardinal
+directions: 'n', 's', 'e', or 'w'.
 
 You can travel to any other port (potentially crossing open ocean) by
 pressing one of the number keys assigned to the desired port.
 
 If your ship incurs damage during your travels on the high seas, you
-may request repairs in your home port of Hong Kong.
+may request repairs in your home port of Hong Kong. If your ship is
+heavily damaged, it's much to your advantage to stick close to the
+coast on the journey home.
 
-The game ends when your ship is sunk by marauders, or you make
-enough money to retire a millionaire.
+The game ends when your ship is sunk by marauders, you make enough
+money to retire a millionaire, or you sail around the world a
+specified number of times (which you can check by pressing 'r').
 """
 # FIXME: ---or--- you sail to each port ten times
 
@@ -156,12 +162,13 @@ else:
     os.system(['clear','cls'][os.name == 'nt'])
 
   def printNow(s):
-    """Replacement for JES's 'printNow' function when running in CPython"""
+    """Replacement for JES's 'printNow' function when running in CPython
+    (kme)"""
     print(s)
 
   def requestString(message="Enter a value -->"):
     """Replacement for JES's 'requestString' function when running in
-    CPython"""
+    CPython (kme)"""
     #no_input = True
     #while no_input:
     print(message), # no newline
@@ -174,7 +181,7 @@ else:
 
   def requestInteger(message="Enter a number -->"):
     """Replacement for JES's 'requestInteger' function when running in
-    CPython"""
+    CPython (kme)"""
     bad_input = True
     while bad_input:
       print(message + " "), # no newline
@@ -189,6 +196,8 @@ else:
 #                   U T I L I T Y   F U N C T I O N S                        #
 ##############################################################################
 def commafy(n):
+  """Stringify a large number, with commas in the thousands' places (kme,
+  based on http://www.peterbe.com/plog/thousands-commafy-large-numbers"""
   rev_n = enumerate(str(n)[::-1])  # a reversed string, enumerated
   r = []
   for i, c in rev_n:
@@ -210,6 +219,12 @@ class ShipSunk(Exception):
   def __init__(self, ship_name="The ship"):
     self.message = "Taipan, we've sustained too much damage. " + \
         "%s is going down!" % ship_name
+  def __str__(self):
+    return self.message
+
+class EndGame(Exception):
+  def __init__(self, ship_name="The ship"):
+    self.message = "The game has ended."
   def __str__(self):
     return self.message
 
@@ -236,6 +251,7 @@ class ThatWouldBankruptYou(Exception):
 #                        C L A S S   O B J E C T S                           #
 ##############################################################################
 class Ship:
+  """The ship object for Taipain! (kme, with modifications by everyone)"""
   def __init__(self, name=DEFAULT_SHIP_NAME, starting_choice=2,
                shanty=DEFAULT_SHANTY):
     """Initialization for the 'Ship' class"""
@@ -249,7 +265,10 @@ class Ship:
       self.cash = 400
       self.debt = -5000
     elif starting_choice == 2: # guns and no cash (but no debt)
-      self.guns = 5
+      if DEBUGGING:
+        self.guns = STARTING_GUNS - 2
+      else:
+        self.guns = STARTING_GUNS
       self.cash = 0
       self.debt = 0
     # The ship starts with 60 holds. A gun takes 10 holds.
@@ -284,7 +303,24 @@ class Ship:
 
   def setGuns(self, amt):
     """Sets the amount of guns on the ship - NTL"""
-    self.guns = amt
+    if amt < 0:
+      raise ValueError
+    else:
+      self.guns = amt
+
+  def addGuns(self, how_many=1):
+    """Add a specified number of guns to the ship's armaments (kme)"""
+    if how_many < 0:
+      raise ValueError
+    else:
+      self.guns += how_many
+
+  def destroyGun(self):
+    """Destroy a gun in battle. Returns the number of guns remaining in the
+    arsenal. (kme)"""
+    if self.guns >= 1:
+      self.guns -= 1
+    return self.guns
 
   def setCash(self, amt):
     """Sets the amount of cash on the ship - NTL"""
@@ -320,18 +356,20 @@ class Ship:
   def causeDamage(self, damage):
     """Cause the ship to sustain battle damage, subtracting 'damage' from
     self.condition. Raise 'ShipSunk' if this causes condition to go less than
-    zero."""
+    zero. (kme, modifications by NTL)"""
     self.setCondition(self.getCondition() - damage)
     if self.getCondition() <=0:
       raise ShipSunk
 
   def doShipRepairs(self):
     """This method gets invoked when the ship's condition is <90%, and
-    allows you to pay McHenry from the Hong Kong shipyard"""
+    allows you to pay McHenry from the Hong Kong shipyard (kme, with
+    modifications by NTL)"""
     # Should test for location here, but it's no longer local to this class.
     # :/
-    assert(self.getCondition() < 100)  # it's a programming error if we get here
-                                   # otherwise
+    if not DEBUGGING:
+      assert(self.getCondition() < 100)  # it's a programming error if we get
+                                         # here otherwise
     damage = 100 - self.getCondition()
     printNow("Taipan, Mc Henry from the Hong Kong Shipyards has arrived.")
     sleep(PAUSE_MSG_SHORT)
@@ -344,17 +382,17 @@ class Ship:
       # richer, McHenry's going to charge you more. Like any good capitalist,
       # he's capturing consumer surplus.
       # ref: http://www.joelonsoftware.com/articles/CamelsandRubberDuckies.html
-      price = int((REPAIR_COST + 0.15*self.getCash()) * damage/100.0)
+      price = int((REPAIR_COST + min(10000, 0.15*self.getCash())) *
+                  damage/100.0)
       printNow("We can fix yer whole ship for " + str(price) +
                ", or make partial repairs if you wish.")
-      printNow('')
-
       good_response = False
       while not good_response:
-        resp = requestInteger("How much will ye spend (0-%i)" % price)
+        resp = requestInteger("How much will ye spend? (0-%i)" % price)
         resp = int(resp) # always ignore fractional currency
         if not resp:  # None or 0
-          return
+          good_response = True
+          continue
         elif resp < 0:
           printNow("That isn't a figure I understand, sir.\n")
           continue
@@ -369,7 +407,43 @@ class Ship:
           if resp > price:
             self.setCondition(100)
           else:
-            self.setCondition(self.getCondition() + int((resp / float(price)) * damage))
+            self.setCondition(self.getCondition() + 
+              int((resp / float(price)) * damage))
+      if self.guns < STARTING_GUNS:
+        busted_guns = STARTING_GUNS - self.guns
+        sleep(PAUSE_MSG_SHORT)
+        # ---------------------------------------------------------------
+        #               Offer to replace damaged guns:
+        # ---------------------------------------------------------------
+        printNow("\nIt seems %i of yer guns have been damaged " %busted_guns +
+                 "in battle.\nYour ship has holds for %i guns.\n" %
+                 STARTING_GUNS)
+        resp = requestString("Will ye be wanting to purchase " +
+                             "replacement guns? [Y/n]")
+        if resp == '' or resp[0].lower() == 'y':  # yes or ENTER
+          # a tenth the base price of repairing your whole ship plus 1% of
+          # your cash on hand up to a max of 1000:
+          price = int(0.10*REPAIR_COST + min(1000, 0.01*self.cash))
+          printNow("Ay, very well then.\nI can replace yer %i busted " %
+                   busted_guns + "guns at a price of %i apiece." % price)
+          good_response = False
+          while not good_response:
+            resp = requestInteger("How many guns will ye replace? (0-%i)"
+              % busted_guns)
+            resp = int(resp) # always ignore fractional quantity
+            if not resp:  # None or 0
+              good_response = True
+              continue
+            elif resp < 0:
+              printNow("That isn't a figure I understand, sir.\n")
+              continue
+            elif resp > self.cash:
+              printNow("That'll bankrupt us, Taipan!\n")
+              continue
+            else:
+              good_response = True
+              self.setCash(self.cash - price*resp)
+              self.addGuns(resp)
     else:
       # Ye won't be wanting repairs, then.
       return
@@ -378,7 +452,8 @@ class Ship:
 class Port:
   """A class that contains all the ports of call for Taipan! along with
   methods to determine whether one can sail between two ports directly, and to
-  print the "arriving at..." message for the current port."""
+  print the "arriving at..." message for the current port. (kme, with
+  modifications by everyone)"""
   # Don't put this here. It becomes a class variable which is shared (and
   # modified) by all instances:
   #port_to_the = {}  # keep track of which port lies to n,s,e,w
@@ -414,7 +489,7 @@ class Port:
     return self.port_number
 
   def getName(self):
-    """Returns the name of the port at [portnum] -NTL"""
+    """Returns the name of the port at [portnum] - NTL"""
     portnum = self.getPortNumber()
     return port_names[portnum]
 
@@ -435,7 +510,7 @@ class Port:
 
   def setPortToThe(self, direction, portref):
     """Set the value at 'direction' in the port_to_the dictionary to the Port
-    reference given as the second argument"""
+    reference given as the second argument (NTL)"""
     # This function allows the Game class to set the values in the
     # 'port_to_the' dict to references to the other Port class instances.
     # Previously, 'port_to_the' just held integers representing the key in the
@@ -445,7 +520,7 @@ class Port:
 
   def arrivalMessage(self):
     """Prints the arrival message (and a brief ship's status report) for this
-    port"""
+    port (kme)"""
     #self.__printDescription()
     s = "Arriving in the port of " + self.getName() + "...."
     printNow('='*len(s) + '\n' + s + '\n' + '='*len(s))
@@ -455,7 +530,7 @@ class Port:
 
   def canSailTo(self, portnum):
     """Returns False if you can't sail *directly* to that port without putting
-    out to sea"""
+    out to sea (kme)"""
     #if portnum in self.port_to_the.values(): # are Port objs now, won't work
     plist = []
     for p in self.port_to_the.values():
@@ -467,7 +542,7 @@ class Port:
       return False
 
   def printDescription(self):
-    """Prints a description of this port."""
+    """Prints a description of this port. (kme)"""
     printNow("You are in the port of " + self.getName())
 
   def printNeighboringPorts(self):
@@ -476,10 +551,10 @@ class Port:
     # @NTL: since this is a private method, you can directly access the
     # class's internal variables here, and in a "real" class, there may be
     # speed benefits to doing so. I'm leaving this one as is. --kme
-    printNow("To the North lies " + self.getPortToThe('n').getName() + ".")
-    printNow("To the South lies " + self.getPortToThe('s').getName() + ".")
-    printNow("To the East  lies " + self.getPortToThe('e').getName() + ".")
-    printNow("To the West  lies " + self.getPortToThe('w').getName() + ".")
+    printNow("To the [N]orth lies " + self.getPortToThe('n').getName() + ".")
+    printNow("To the [S]outh lies " + self.getPortToThe('s').getName() + ".")
+    printNow("To the [E]ast  lies " + self.getPortToThe('e').getName() + ".")
+    printNow("To the [W]est  lies " + self.getPortToThe('w').getName() + ".")
 
   #def listNeighboringPorts(self):
   #  """Return a Python dictionary of neighboring ports (essentially an
@@ -495,7 +570,7 @@ class Port:
 class HomePort(Port):
   """Derived Port class that only applies to Hong Kong, where you can get your
   ship repaired, visit the warehouse, and borrow money from Elder Brother
-  Wu."""
+  Wu. (griffas)"""
   # I think you need to call the base class' __init__ function here...
   #def __init__:
 
@@ -503,7 +578,8 @@ class HomePort(Port):
 class Game:
   """The map structure of the game. Basically a list of Ports, and the actions
   to act upon them. Always passed in a reference to 'ship' so it can
-  manipulate data structures inside it as the ship sails from port to port."""
+  manipulate data structures inside it as the ship sails from port to port.
+  (kme, with modifications by everyone)"""
   def __init__(self, firm_name=DEFAULT_FIRM_NAME):
     self.ship = Ship()
     if firm_name:  # not None or empty string
@@ -546,7 +622,8 @@ class Game:
     return self.firm_name
 
   def incrementVisitsForPortNumber(self, portnum):
-    """Increment the number of visits for the given port number, 'portnum'"""
+    """Increment the number of visits for the given port number, 'portnum'
+    (kme)"""
     if portnum < 0:
       raise ValueError
     else:
@@ -554,7 +631,7 @@ class Game:
 
   def getPortVisits(self):
     """Get a list, in numerical order from 0 to (default) 7 of the visit
-    counts for all the ports."""
+    counts for all the ports. (kme)"""
     # NB: The sorting probably isn't necessary, since the main game loop is
     # just going to do a min() on this list when deciding whether or not you
     # can retire in Hong Kong.
@@ -568,11 +645,11 @@ class Game:
 
   def timesAroundTheWorld(self):
     """Return the number of times the player has "sailed around the world" by
-    looking a the minimum number of port visits from visit_count"""
+    looking a the minimum number of port visits from visit_count (kme)"""
     return min(self.visit_count.values())
 
   def printPortMenu(self):
-    """Print a menu of ports to which you can sail"""
+    """Print a menu of ports to which you can sail (kme, modifications by NTL)"""
     s = ''
     for i in range(1, len(self.ports)):  # skips '0'!
       s = s + "[%i] %s    " %(i, self.ports[i].getName())
@@ -582,7 +659,7 @@ class Game:
   def sailTo(self, to_port):
     """Set sail from the current port to the given destination port 'to_port'.
     If the destination port is a neighbor, updates self.current_port and
-    returns. Otherwise, calls 'putToSea'."""
+    returns. Otherwise, calls 'putToSea'. (kme, with modificatins by NTL)"""
     to_port = int(to_port) # for my sanity
 
     # Validate the input first:
@@ -635,7 +712,7 @@ class Game:
   def seaBattle(self):
     """Initiate a sea battle with a specified number of adversaries
     (defaulting to a random number generated by randomShips(), based on how
-    much cash you're carrying). Written by kme, modified by Kyle Rone"""
+    much cash you're carrying). (kme, modified by Kyle Rone)"""
     # (kme) There's a problem with using a function to set default values in
     # the argument list, and JES gripes about it. I'm going to remove the
     # optional 'numberShips' argument and just set it here first thing with
@@ -652,6 +729,7 @@ class Game:
         printNow("\nAye, sir. We'll try to get away...")
         sleep(PAUSE_EVENT)
         printNow("\nWe made it!")
+        sleep(PAUSE_MSG)
         raise BattleVictory
       else:
         printNow("\nAye, sir. We'll fight.")
@@ -691,7 +769,7 @@ class Game:
     As opposed to 'sailTo', which is a short sail to a neighboring port close
     to the coast, 'putToSea' involves preparation for a significant sea
     voyage, buying supplies, and carries with it the inherent risk of pirate
-    attacks, storms, and sea monsters."""
+    attacks, storms, and sea monsters. (kme)"""
     destination = int(destination) # for my sanity
     self.en_route_to = destination
     # In the current implementation, there is a 50% chance that you'll be
@@ -703,6 +781,7 @@ class Game:
         self.seaBattle()
       except ShipSunk:
         self.endGame()
+        return
       except BattleVictory:
         pass
     # attacked by a giant squid (between 10 and 30%, depending on whether it's
@@ -718,6 +797,7 @@ class Game:
       except ShipSunk:
         printNow("\nTaipan, the squid is overtaking the ship!")
         self.endGame()
+        return
       else:
         printNow("\nTaipan, we've managed to stave off the squid...")
         printNow("We've taken a lot of damage, but we'll " +
@@ -738,6 +818,7 @@ class Game:
       printNow("\nWe're losing her, Taipan. " + self.ship.getName() +
                " is sinking!")
       self.endGame()
+      return
 
     # Made it this far...
     self.en_route_to=None
@@ -745,14 +826,21 @@ class Game:
     self.current_port=self.ports[destination]
 
   def endGame(self):
+    """Update the global quit_game so that the main game loop will quit.
+    (kme)"""
     printNow("\n\nIt's been a pleasure serving with you, sir.\n")
     #printNow("ALL HANDS ABANDON SHIP!\n\n")
     printNow("~~~~~~~~~~~~~~~~~~~~\n" +
              " G A M E    O V E R\n" +
              "~~~~~~~~~~~~~~~~~~~~\n")
-    printNow("We know this call to exit() is going to fail because it " +
-             "isn't properly implemented in JES\n")
-    exit()
+    #printNow("We know this call to exit() is going to fail because it " +
+    #         "isn't properly implemented in JES\n")
+    #exit()
+    # Try this instead:
+    #quit_game = True
+    # Try this instead:
+    raise EndGame
+    return  # unnecessary?
 
   # def goHome(self, ship):
   #   """Immediately sail home (e.g., in case of severe battle damage)"""
@@ -778,7 +866,8 @@ def runGame():
   printNow("Very well, sir. " + g.getName() + " will need a ship.\n")
   resp = requestString("What will you name your ship?")
   g.ship.setName(resp)
-  quit_game = False
+  #global quit_game  # global so endGame() can modify it
+  quit_game = False   
 
   while not quit_game:
     g.current_port.arrivalMessage()
@@ -829,11 +918,13 @@ def runGame():
                      # case the user pressed "Cancel"
       elif resp in directions.keys():
         # Go in that direction.
-        # This next line doesn't seem to work. Too many levels of
-        # indirection? Works in interactive mode.
-        #portnum = g.current_port.getPortToThe('resp').getPortNumber()
-        portnum = g.current_port.getPortNumberToThe('n')
-        g.sailTo(portnum)
+        resp = g.current_port.getPortToThe(resp).getPortNumber()
+        #resp = g.current_port.getPortNumberToThe('n')  # oops (kme)
+        try:
+          g.sailTo(resp)
+        except EndGame:
+          quit_game = True
+          continue
       elif resp == 'r':
         # Check retirement status:
         cls()
@@ -846,7 +937,11 @@ def runGame():
         resp = True # ensure we re-print the port arrival message
       elif resp.isdigit():
         #g.current_port = g.sailTo(resp)
-        g.sailTo(resp)
+        try:
+          g.sailTo(resp)
+        except EndGame:
+          quit_game = True
+          continue
       else: # invalid response
         resp = None # clear the response, so the while loop won't stop
         continue
