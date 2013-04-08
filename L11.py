@@ -413,29 +413,44 @@ class Port:
 class HomePort(Port):
   """Derived Port class that only applies to Hong Kong, where you can get your
   ship repaired, visit the warehouse, and borrow money from Elder Brother
-  Wu. Allyssa Griffith."""
-  
-  def __init__(self,1):
-    #bankBalance = not sure what to put here
-    a = requestString('Do you have business with Elder Brother Wu? yes/no')
-    if a == 'yes':
-      #call the doBusiness function or put it here
+  Wu. Allyssa Griffith.""" 
+    
+  def doBusinessWithBrotherWu(self,ship):
+    resp = requestString('Do you have business with Elder Brother Wu, '+
+      'the moneylender? [y/n]')
+    if resp[0].lower() == 'y':
+      good_response = False
+      while not good_response:
+        resp = requestInteger('How much would you like to borrow?')
+        if ship.getCash() == 0:
+          if resp > ship.getGuns() * 100:
+            printNow("He won't lend you so much, Taipan!")
+            continue
+        elif resp > ship.getCash():
+          printNow("He won't lend you so much, Taipan!")
+          continue
+        elif resp < 0:
+          printNow("That isn't a figure I understand, sir.\n")
+          continue
+        else:
+          good_response = True
+          ship.setCash(ship.getCash() + resp) 
+          ship.setDebt(ship.getDebt() + resp)
+    else:
+      return
+
+ # def wareHouse(self):
+    #warehouse = requestString('Would you like to transfer cargo? yes/no')
+    #if warehouse == 'yes':
+      #transfer = requestString('What would you like to transfer? o/g/s/a')
+      # items: Opium, General, Silk, Arms
       
-    def doBusinessWithBrotherWu:(self,ship):
-      amount = requestString('How much money would you like to borrow?')
-      
-    def wareHouse(self):
-      warehouse = requestString('Would you like to transfer cargo? yes/no')
-      if warehouse == 'yes':
-        transfer = requestString('What would you like to transfer? o/g/s/a')
-        # items: Opium, General, Silk, Arms
-      
-    def retirement(self):
-      if bank + g.ship.cash >= RICH_ENOUGH_TO_RETIRE:
-        r = requestString('You have enough cash to retire. Is this what you'+
-          'would like to do? yes/no')
-        if r == 'yes':
-          #retire
+ # def retirement(self):
+   # if bank + g.ship.cash >= RICH_ENOUGH_TO_RETIRE:
+     # r = requestString('You have enough cash to retire. Is this what you'+
+       # 'would like to do? yes/no')
+      #if r == 'yes':
+        #retire
         
    
     
