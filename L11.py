@@ -575,14 +575,22 @@ class HomePort(Port):
   def doBusinessWithBrotherWu(self,ship):
     resp = requestString('Do you have business with Elder Brother Wu, '+
       'the moneylender? [y/n]')
-    if resp[0].lower() == 'y':
+    if not resp == None and resp[0].lower() == 'y':
       good_response = False
       while not good_response:
         resp = requestInteger('How much would you like to borrow?')
+        resp = int(resp) # always ignore fractional quantity
+        if not resp:  # None or 0
+          good_response = True
+          continue
         if ship.getCash() == 0:
           if resp > ship.getGuns() * 100:
             printNow("He won't lend you so much, Taipan!")
             continue
+          else:
+            good_response = True
+            ship.setCash(ship.getCash() + resp) 
+            ship.setDebt(ship.getDebt() + resp)
         elif resp > ship.getCash():
           printNow("He won't lend you so much, Taipan!")
           continue
@@ -631,7 +639,10 @@ class Game:
     # their relative position to each other, and set up this mapping in their
     # own __init__ methods.
     for p in port_names.keys():
-      self.ports[p] = Port(p)
+      if p == 1:
+        self.ports[1] = HomePort(1)
+      else:
+        self.ports[p] = Port(p)
       #if p != 0:  
       # I've decided to keep track of visits to port 0 (the open ocean).
       # Could work this into some kind of achievement system, or ranking
@@ -917,6 +928,7 @@ def runGame():
     # TODO: fix this to be instanceof(HomePort) once the HomePort class is
     # fleshed out.
     if g.current_port.getName() == "Hong Kong":
+      g.current_port.doBusinessWithBrotherWu(g.ship)
       if g.ship.getCash() > RICH_ENOUGH_TO_RETIRE:
         cls()
         printNow("Taipan, you have had a successful career and amassed " +
@@ -931,6 +943,10 @@ def runGame():
         self.endGame()
       elif g.ship.getCondition() < 90:
         g.ship.doShipRepairs()
+      cls()
+      g.ship.printStatus()
+      g.printPortMenu()
+    
     printNow('')
 
     resp = None
