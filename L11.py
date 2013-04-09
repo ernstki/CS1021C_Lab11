@@ -28,7 +28,7 @@ import os #import (system, name)
 from random import randrange
 from string import ljust, join
 from time import sleep
-DEBUGGING = True
+DEBUGGING = False
 if DEBUGGING:
   RUTHLESS_ADVERSARIES, DEFLATION, EARLY_RETIREMENT = 1,1,1
   SQUID_SEASON, IMPATIENT = 1,1
@@ -153,7 +153,15 @@ specified number of times (which you can check by pressing 'r').
 
 # Fix up a few things if we're not running in JES/Jython:
 # -------------------------------------------------------
-if sys.executable == None: # JES does this
+def runningInJES():
+  """Determine whether we're running in JES (sys.platform returns the Java JRE
+  version instead of the machine architecture or OS type) and return True if
+  we are, False otherwise (kme)"""
+  # import sys
+  # This seems like an odd combination, and it's probably unique to JES:
+  return sys.platform.startswith("java") and sys.executable == None
+
+if runningInJES():
   def cls():
     printNow("\n"*25)
 else:
@@ -616,8 +624,6 @@ class HomePort(Port):
        # 'would like to do? yes/no')
       #if r == 'yes':
         #retire
-        
-   
     
 
 class Game:
@@ -897,6 +903,23 @@ class Game:
 ##############################################################################
 #                      I N I T I A L I Z A T I O N                           #
 ##############################################################################
+def screenSizeAdjust():
+  """Since we used requestStrings() for everything, JES makes it difficult to
+  adjust screen height while the game is already running, so
+  screenSizeAdjust() falls back on a 'raw_input' to allow the user to adjust
+  her screen height before the game starts."""  
+  cls()
+  printNow("RESIZE JES COMMAND WINDOW TO HERE\n" + '-'*70 + '\n'* 18 +
+      "For the best experience, please resize the JES command window so " +
+      "that the message\n'RESIZE JES COMMAND WINDOW TO HERE' above " +
+      "is visible on your screen.\n\n" + 
+      "Press ENTER when ready to begin or 'q' to quit ...")
+  resp = raw_input()
+  if resp and resp[0].lower() == 'q':
+    return False
+  else:
+    return True
+
 def printHelp():
   """Print the two screens of help, pausing in between (kme)"""
   cls()  # clear the screen
@@ -907,6 +930,13 @@ def printHelp():
 
 def runGame():
   """Run Taipan! (kme, with modifications by everyone else)"""
+  quit_game = False   
+  # Allow user to adjust screen hard before we start in with the
+  # requestStrings:
+  if runningInJES():
+    if not screenSizeAdjust():
+      return  # bail out now
+
   printHelp()
   printNow('~'*70)
   resp = requestString("Let's begin, Taipan. What will you name your firm?")
@@ -914,8 +944,8 @@ def runGame():
   printNow("Very well, sir. " + g.getName() + " will need a ship.\n")
   resp = requestString("What will you name your ship?")
   g.ship.setName(resp)
-  #global quit_game  # global so endGame() can modify it
-  quit_game = False   
+  sleep(PAUSE_MSG_SHORT)
+  cls()
 
   while not quit_game:
     g.current_port.arrivalMessage()
@@ -944,6 +974,7 @@ def runGame():
       elif g.ship.getCondition() < 90:
         g.ship.doShipRepairs()
       cls()
+      g.current_port.arrivalMessage()
       g.ship.printStatus()
       g.printPortMenu()
     
