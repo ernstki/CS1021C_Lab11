@@ -28,7 +28,7 @@ import os #import (system, name)
 from random import randrange
 from string import ljust, join
 from time import sleep
-DEBUGGING = False
+DEBUGGING = True
 if DEBUGGING:
   RUTHLESS_ADVERSARIES, DEFLATION, EARLY_RETIREMENT = 1,1,1
   SQUID_SEASON, IMPATIENT = 1,1
@@ -959,18 +959,27 @@ def runGame():
     # fleshed out.
     if g.current_port.getName() == "Hong Kong":
       g.current_port.doBusinessWithBrotherWu(g.ship)
-      if g.ship.getCash() > RICH_ENOUGH_TO_RETIRE:
+      if g.ship.getCash() >= RICH_ENOUGH_TO_RETIRE:
         cls()
         printNow("Taipan, you have had a successful career and amassed " +
                  "great wealth.\nI think it's high time you retired to a " +
                  "quiet home in the country!")
-        self.endGame()
-      elif g.timesAroundTheWorld() > RETIREMENT_AGE:
+        try:
+          # This isn't pretty, but we want to ignore the exception that
+          # endGame() raises and just 'return' (quitting the game):
+          g.endGame()
+        except EndGame:
+          return #quit the program
+
+      elif g.timesAroundTheWorld() >= RETIREMENT_AGE:
         cls()
         printNow("Taipan, you have had a successful career and bravely " +
-                 "sailed the high seas for many years now. I think it's " +
+                 "sailed the high seas for\nmany a year. I think it's " +
                  "high time you retired to a quiet home in the country!")
-        self.endGame()
+        try:
+          g.endGame()
+        except EndGame:
+          return #quit the program
       elif g.ship.getCondition() < 90:
         g.ship.doShipRepairs()
       cls()
