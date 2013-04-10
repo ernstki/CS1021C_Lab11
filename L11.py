@@ -28,7 +28,7 @@ import os #import (system, name)
 from random import randrange
 from string import ljust, join
 from time import sleep
-DEBUGGING = True
+DEBUGGING = False
 if DEBUGGING:
   RUTHLESS_ADVERSARIES, DEFLATION, EARLY_RETIREMENT = 1,1,1
   SQUID_SEASON, IMPATIENT = 1,1
